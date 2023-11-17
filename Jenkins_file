@@ -1,75 +1,51 @@
 pipeline {
-    agent any
-    tools {
-        //import node js library
-        nodejs "nodeJS"
+  agent any
+  tools {
+    nodejs 'Nodejs'
+  }
+  stages {
+    stage('Clone Repo') {
+      steps {
+        echo 'Cloning Repository'
+        git 'https://github.com/denismurimi/DevOpsIP1.git'
+      }
     }
-     environment {
-        //render url
-        render_URL = 'https://ipproject1.onrender.com' 
+    stage('Install Dependencies') {
+      steps {
+        echo 'Installing dependencies'
+        sh 'npm install'
+      }
     }
-    
-    stages {
-        stage('Clone repository') {
-            steps {
-                //cloning the repo
-                echo 'cloning the repo'
-                git 'https://github.com/EzM-dot/galleryIP1'
-            }
-        }
-        stage('Install packages') {
-            steps {
-               //Installing npm for building the project
-                echo 'Installing packages'
-                sh 'npm install'
-            }
-        }
-        stage('Testing the repo') {
-            steps {
-                //running command to test project
-                echo 'Testing the project'
-                sh "npm test"
-            }
-        }
-        stage('Deploy to render') {
-            steps {
-                //curl used to check whether endpoint is accesible once deployed
-                echo 'Deploying to render'
-                sh 'curl -ikv $render_URL'
-            }
-        }
+    stage('Run Tests') {
+      steps {
+        echo 'Running tests stage'
+        sh 'npm test'
+      }
     }
-
-    post {
+    stage('Build') {
+      steps {
+        echo 'Building App'
+        sh 'npm run build'
+      }
+    }
+    stage('Deploy') {
+      steps {
+        echo 'Deploying app'
+        sh 'npm run deploy'
+      }
+    }
+    stage('Cleanup') {
+      steps {
+        echo 'Cleaning up'
+        sh 'rm -rf temp-folder'
+      }
+    }
+  }
+      post {
         success {
-            slackSend(
-                //for slack we put channel name and green colour for success
-                channel: "#edwin_ip1", color: "good", 
-                message: "Build Succeeded for ${currentBuild.fullDisplayName} websiteUrl:https://ipproject1.onrender.com"
-               
-                )
-                //for email we put recipeint and success message
-                emailext to: "edwin.mwendwa@student.moringaschool.com",
-                         subject: "Build Succeeded for ${currentBuild.fullDisplayName}",
-                         body: "Build ${currentBuild.fullDisplayName} has succeeded well."
-        
-        }
-        failure {
-            //failure method
             script {
-                currentBuild.result = "FAILURE"
+                slackSend(channel: "jenkins", message: "pipeline-slack passed successfully")
             }
-            emailext to: "edwin.mwendwa@student.moringaschool.com",
-                     subject: "Build Failed for ${currentBuild.fullDisplayName}",
-                     body: "Build ${currentBuild.fullDisplayName} has failed.",
-                     attachLog: true
-
-            slackSend(
-               
-                channel: "#edwin_ip1", color: "danger", 
-                message: "Build ${currentBuild.fullDisplayName} has failed"
-                
-                )
         }
     }
 }
